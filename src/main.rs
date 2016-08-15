@@ -2,16 +2,20 @@ extern crate tera;
 extern crate toml;
 
 use tera::{Tera, Context};
-use std::env::home_dir;
+use std::env;
 use std::fs::File;
 use std::io::{Read, Write};
+use std::path::PathBuf;
 use std::process::exit;
 
 fn main() {
-    let app_dir = format!("{}/.config/riceinator/", home_dir().unwrap().display());
+    let app_dir = match env::var("XDG_CONFIG_HOME") {
+        Ok(str) => PathBuf::from(str),
+        Err(_) => env::home_dir().unwrap().join(".config/riceinator")
+    };
 
     let mut buffer = String::new();
-    File::open(format!("{}config.toml", app_dir).as_str())
+    File::open(app_dir.join("config.toml"))
         .expect("Couldn't find configuration file")
         .read_to_string(&mut buffer);
 
@@ -33,7 +37,7 @@ fn main() {
         context.add(key, &val.as_str().expect("error: value not a valid string"));
     };
 
-    let tera = Tera::new(format!("{}templates/*", app_dir).as_str());
+    let tera = Tera::new(app_dir.join("templates/*").to_str().unwrap());
 
     let files = config
         .get("files")
